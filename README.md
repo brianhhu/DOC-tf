@@ -7,7 +7,7 @@ This repository is based on the Caffe model found [here](https://github.com/peng
 
 ## Model Conversion
 
-The first step is to get the Caffe model weights and prototxt definition files. They can be found [here](https://drive.google.com/file/d/0B7DaWBKShuMBN0drTzRRMlpoTmc/view). I first tried converting the model from Caffe to Tensorflow using the [caffe-tensorflow](https://github.com/ethereon/caffe-tensorflow) tool. Unfortunately, many layers (including Crop and Deconvolution) are not properly implemented. I then came across the [MMdnn](https://github.com/Microsoft/MMdnn) tool from Microsoft, which allows for conversion of models between different frameworks (e.g. Tensorflow, Caffe, Pytorch, etc.) I adapted the code there after running into the following issues:
+The first step is to get the Caffe model weights and prototxt definition files. They can be found [here](https://drive.google.com/file/d/0B7DaWBKShuMBN0drTzRRMlpoTmc/view). I first tried converting the model from Caffe to Tensorflow using the [caffe-tensorflow](https://github.com/ethereon/caffe-tensorflow) tool. Unfortunately, many layers (including Crop and Deconvolution) are not properly implemented. I then came across the [MMdnn](https://github.com/Microsoft/MMdnn) tool from Microsoft, which allows for conversion of models between different frameworks (e.g. Tensorflow, Caffe, Pytorch, etc.) I adapted the code there after running into the following issues (my fork of the code is [here](https://github.com/brianhhu/MMdnn)):
 
 1. I didn't want to install Caffe just to do the conversion, so I used a pure protobuf implementation. You have to uncomment out the corresponding lines in the mmdnn/conversion/caffe/resolver.py file to fallback on a protobuf implementation.
 
@@ -34,4 +34,13 @@ python tensorflow_inference.py -n hed.py -w hed.npy -i 41004.jpg
 # Orientation estimation on image 108041
 python tensorflow_inference.py -n doc.py -w doc.npy -i 108041.jpg
 ```
+
+## Example Output
+
+| Original                 |  Edge                     | Orientation |
+:-------------------------:|:-------------------------:|:-------------------------:
+![](41004.jpg)             | ![](41004_hed.png)        | ![](41004_doc.png)
+![](108041.jpg)            | ![](108041_hed.png)       | ![](108041_doc.png)
+
+
 This was tested on Python 3.6 with Tensorflow 1.7. You will also need to install pillow (for image loading) and matplotlib (for plotting results).
