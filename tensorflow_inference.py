@@ -46,4 +46,5 @@ with tf.Session() as sess:
 
 import matplotlib.pyplot as plt
 plt.imshow(predict[-1].squeeze())
+plt.axis('off')
 plt.show()
