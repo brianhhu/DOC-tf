@@ -45,6 +45,12 @@ with tf.Session() as sess:
 # print(predict)
 
 import matplotlib.pyplot as plt
-plt.imshow(predict[-1].squeeze())
-plt.axis('off')
-plt.show()
+# plt.imshow(predict[-1].squeeze())
+# plt.axis('off')
+# plt.show()
+
+# Plot outputs @ Different scales
+for layer_idx in range(len(predict)):
+    plt.figure()
+    plt.imshow(predict[layer_idx].squeeze())
+    plt.title("Output of layer {0}, [idx={1}]".format(model_tf[layer_idx].name, layer_idx))
