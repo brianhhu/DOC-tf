@@ -53,4 +53,7 @@ import matplotlib.pyplot as plt
 for layer_idx in range(len(predict)):
     plt.figure()
     plt.imshow(predict[layer_idx].squeeze())
-    plt.title("Output of layer {0}, [idx={1}]".format(model_tf[layer_idx].name, layer_idx))
+    plt.title("Output of layer {0}, [idx={1}]".format(
+        model_tf[layer_idx].name, layer_idx))
+
+plt.show()

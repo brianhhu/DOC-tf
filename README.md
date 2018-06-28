@@ -43,4 +43,4 @@ python tensorflow_inference.py -n doc.py -w doc.npy -i 108041.jpg
 ![](108041.jpg)            | ![](108041_hed.png)       | ![](108041_doc.png)
 
 
-This was tested on Python 3.6 with Tensorflow 1.7. You will also need to install pillow (for image loading) and matplotlib (for plotting results).
+This was tested on Python 3.6 with Tensorflow 1.8. You will also need to install pillow (for image loading) and matplotlib (for plotting results).

@@ -106,12 +106,14 @@ def KitModel(weight_file=None):
     # conv3-side
     score_dsn3_occ = convolution(relu3_3, group=1, strides=[
                                  1, 1], padding='VALID', name='score-dsn3-occ')
-    upsample_4_occ = convolution_transpose(score_dsn3_occ, output_shape=[1, tf.shape(data)[1], tf.shape(data)[2], 1], strides=[1, 4, 4, 1], padding='SAME', name='upsample_4_occ')
+    upsample_4_occ = convolution_transpose(score_dsn3_occ, output_shape=[1, tf.shape(data)[
+                                           1], tf.shape(data)[2], 1], strides=[1, 4, 4, 1], padding='SAME', name='upsample_4_occ')
 
     # conv4-side
     score_dsn4_occ = convolution(relu4_3, group=1, strides=[
                                  1, 1], padding='VALID', name='score-dsn4-occ')
-    upsample_8_occ = convolution_transpose(score_dsn4_occ, output_shape=[1, tf.shape(data)[1], tf.shape(data)[2], 1], strides=[1, 8, 8, 1], padding='SAME', name='upsample_8_occ')
+    upsample_8_occ = convolution_transpose(score_dsn4_occ, output_shape=[1, tf.shape(data)[
+                                           1], tf.shape(data)[2], 1], strides=[1, 8, 8, 1], padding='SAME', name='upsample_8_occ')
 
     # conv5-side
     score_dsn5 = convolution(relu5_3, group=1, strides=[
@@ -123,7 +125,7 @@ def KitModel(weight_file=None):
                         upsample_16_occ], 3, name='concat')
     new_score_weighting_occ = convolution(concat, group=1, strides=[
                                           1, 1], padding='VALID', name='new-score-weighting-occ')
-    return data, new_score_weighting_occ
+    return data, (upsample_4_occ, upsample_8_occ, upsample_16_occ, new_score_weighting_occ)
 
 
 def convolution_transpose(input, name, **kwargs):
