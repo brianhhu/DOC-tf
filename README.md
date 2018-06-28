@@ -29,18 +29,18 @@ You can pass an arbitrary image to the model and get the model's edge and/or ori
 
 ```python
 # Boundary detection on image 41004
-python tensorflow_inference.py -n hed.py -w hed.npy -i 41004.jpg
+python tensorflow_inference.py -n hed -w model/hed.npy -i img/41004.jpg
 
 # Orientation estimation on image 108041
-python tensorflow_inference.py -n doc.py -w doc.npy -i 108041.jpg
+python tensorflow_inference.py -n doc -w model/doc.npy -i img/108041.jpg
 ```
 
 ## Example Output
 
 | Original                 |  Edge                     | Orientation |
 :-------------------------:|:-------------------------:|:-------------------------:
-![](41004.jpg)             | ![](41004_hed.png)        | ![](41004_doc.png)
-![](108041.jpg)            | ![](108041_hed.png)       | ![](108041_doc.png)
+![](img/41004.jpg)             | ![](img/41004_hed.png)        | ![](img/41004_doc.png)
+![](img/108041.jpg)            | ![](img/108041_hed.png)       | ![](img/108041_doc.png)
 
 
 This was tested on Python 3.6 with Tensorflow 1.8. You will also need to install pillow (for image loading) and matplotlib (for plotting results).

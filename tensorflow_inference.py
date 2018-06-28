@@ -10,7 +10,7 @@ import tensorflow as tf
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-n', type=_text_type, default='kit_doc',
-                    help='Network structure file name.')
+                    help='Network structure name')
 
 
 parser.add_argument('-w', type=_text_type, required=True,
@@ -18,16 +18,19 @@ parser.add_argument('-w', type=_text_type, required=True,
 
 parser.add_argument('--image', '-i',
                     type=_text_type, help='Test image path.',
-                    default="41004.jpg"
+                    default="img/41004.jpg"
                     )
 
 
 args = parser.parse_args()
-if args.n.endswith('.py'):
-    args.n = args.n[:-3]
 
 # import converted model
-model_converted = __import__(args.n).KitModel(args.w)
+if args.n == 'doc':
+    import model.doc as m
+elif args.n == 'hed':
+    import model.hed as m
+
+model_converted = m.KitModel(args.w)
 input_tf, model_tf = model_converted
 
 # load img with BGRTranspose=True
@@ -42,12 +45,8 @@ with tf.Session() as sess:
     init = tf.global_variables_initializer()
     sess.run(init)
     predict = sess.run(model_tf, feed_dict={input_tf: input_data})
-# print(predict)
 
 import matplotlib.pyplot as plt
-# plt.imshow(predict[-1].squeeze())
-# plt.axis('off')
-# plt.show()
 
 # Plot outputs @ Different scales
 for layer_idx in range(len(predict)):
