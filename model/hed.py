@@ -142,7 +142,7 @@ def KitModel(weight_file=None):
     new_score_weighting = convolution(concat, group=1, strides=[
                                       1, 1], padding='VALID', name='new-score-weighting')
     sigmoid_fuse = tf.sigmoid(new_score_weighting, name='sigmoid-fuse')
-    return data, (sigmoid_dsn1, sigmoid_dsn2, sigmoid_dsn3, sigmoid_dsn4, sigmoid_dsn5, sigmoid_fuse)
+    return data, sigmoid_fuse
 
 
 def convolution_transpose(input, name, **kwargs):

@@ -118,14 +118,15 @@ def KitModel(weight_file=None):
     # conv5-side
     score_dsn5 = convolution(relu5_3, group=1, strides=[
                              1, 1], padding='VALID', name='score-dsn5')
-    upsample_16_occ = convolution_transpose(score_dsn5, output_shape=[1, tf.shape(data)[1], tf.shape(data)[2], 1], strides=[1, 16, 16, 1], padding='SAME', name='upsample_16_occ')
+    upsample_16_occ = convolution_transpose(score_dsn5, output_shape=[1, tf.shape(data)[1], tf.shape(
+        data)[2], 1], strides=[1, 16, 16, 1], padding='SAME', name='upsample_16_occ')
 
     # concatenate
     concat = tf.concat([upsample_4_occ, upsample_8_occ,
                         upsample_16_occ], 3, name='concat')
     new_score_weighting_occ = convolution(concat, group=1, strides=[
                                           1, 1], padding='VALID', name='new-score-weighting-occ')
-    return data, (upsample_4_occ, upsample_8_occ, upsample_16_occ, new_score_weighting_occ)
+    return data, new_score_weighting_occ
 
 
 def convolution_transpose(input, name, **kwargs):
