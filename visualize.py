@@ -66,6 +66,7 @@ def simple_gradient_ascent(tgt_cb, in_cb, in_img, n_iter=20, step=1.0):
 
 if __name__ == '__main__':
     plt.ion()
+    np.random.seed(7)
 
     # -----------------------------------------------------------------------------------
     # Load the Model
@@ -101,7 +102,8 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------------
     # Initialization
     # -----------------------------------------------------------------------------------
-    tgt_layer = 'block_7/conv2d_transpose'
+    tgt_layer = 'block_4/convolution'
+    # tgt_layer = 'block_7/conv2d_transpose'
 
     # Start with a gray image with noise
     start_image = np.random.uniform(size=(256, 256, 3)) + 100.
@@ -109,13 +111,13 @@ if __name__ == '__main__':
 
     tgt_layer_cb = get_layer_callback(tgt_layer, graph)
 
-    # # -----------------------------------------------------------------------------------
-    # # Single Channel of specified layer
-    # # -----------------------------------------------------------------------------------
+    # -----------------------------------------------------------------------------------
+    # Single Channel of specified layer
+    # -----------------------------------------------------------------------------------
     tgt_channel = 0
 
     processed_image = simple_gradient_ascent(
-        tgt_layer_cb[:, 50, 50, tgt_channel],
+        tgt_layer_cb[:, :, :, tgt_channel],
         input_cb,
         start_image,
         n_iter=100,
