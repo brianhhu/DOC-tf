@@ -74,22 +74,23 @@ def get_number_of_channels(tgt_l, model_graph):
     return int(model_graph.get_tensor_by_name(tgt_l + ':0').get_shape()[-1])
 
 
-def visualize_all_channels(img, model_graph, in_cb, tgt_l, margin=3, n_iter=50):
+def visualize_all_channels(img, model_graph, in_cb, tgt_l,  n_iter=50, chans_per_image=32, margin=1):
     """
 
     :param img:
     :param model_graph:
     :param in_cb:
     :param tgt_l:
-    :param margin:
     :param n_iter:
+    :param chans_per_image:
+    :param margin:
     :return:
     """
 
     n_channels = get_number_of_channels(tgt_l, model_graph)
     print("{} has {} channels".format(tgt_l, n_channels))
 
-    tile_d = np.int(np.ceil(np.sqrt(n_channels)))  # Single dimension of tiled image
+    tile_d = np.int(np.ceil(np.sqrt(chans_per_image)))  # Single dimension of tiled image
 
     r = img.shape[1]
     c = img.shape[2]
@@ -97,13 +98,20 @@ def visualize_all_channels(img, model_graph, in_cb, tgt_l, margin=3, n_iter=50):
     width = (r + margin) * tile_d
     height = (c + margin) * tile_d
 
+    img_idx = 0
     tiled_img = np.zeros((width, height, img.shape[3]))
 
     for tgt_chan in range(n_channels):
 
-        r_idx = tgt_chan / tile_d
-        c_idx = tgt_chan - r_idx * tile_d
-        print("processing channel {}, (r,c)= {},{}".format(tgt_chan, r_idx, c_idx))
+        temp = np.mod(tgt_chan, chans_per_image)
+
+        if temp == 0:
+            tiled_img = np.zeros((width, height, img.shape[3]))
+            img_idx += 1
+
+        r_idx = temp / tile_d
+        c_idx = temp - r_idx * tile_d
+        print("processing channel {}, image {}, (r,c)= {},{}".format(tgt_chan, img_idx, r_idx, c_idx))
 
         processed_img = simple_gradient_ascent(
             tgt_layer_cb[:, :, :, tgt_chan],
@@ -118,7 +126,13 @@ def visualize_all_channels(img, model_graph, in_cb, tgt_l, margin=3, n_iter=50):
             :
         ] = processed_img
 
-    display_image(tiled_img)
+        if temp == (chans_per_image - 1):
+            display_image(tiled_img)
+            plt.title("Layer {}. Channels {} - {}".format(
+                tgt_l,
+                (img_idx - 1) * chans_per_image,
+                (img_idx * chans_per_image) - 1,
+            ))
 
 
 if __name__ == '__main__':
@@ -159,7 +173,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------------
     # Initialization
     # -----------------------------------------------------------------------------------
-    tgt_layer = 'block_1/convolution_1'
+    tgt_layer = 'block_4/convolution_1'
     # tgt_layer = 'block_7/conv2d_transpose'
 
     # Start with a gray image with noise
@@ -168,35 +182,30 @@ if __name__ == '__main__':
 
     tgt_layer_cb = get_layer_callback(tgt_layer, graph)
 
-    # -----------------------------------------------------------------------------------
-    # Single Channel of specified layer
-    # -----------------------------------------------------------------------------------
-    tgt_channel = 3
-
-    processed_image = simple_gradient_ascent(
-        tgt_layer_cb[:, 100, 100, tgt_channel],
-        input_cb,
-        start_image,
-        n_iter=100,
-    )
-
-    display_image(vis_normalize(processed_image))
-    plt.title("Simple Gradient Ascent")
-
     # # -----------------------------------------------------------------------------------
-    # # All Channels of specified Layer
+    # # Single Channel of specified layer
     # # -----------------------------------------------------------------------------------
-    # visualize_all_channels(
-    #     start_image,
-    #     graph,
+    # tgt_channel = 3
+    #
+    # processed_image = simple_gradient_ascent(
+    #     tgt_layer_cb[:, 100, 100, tgt_channel],
     #     input_cb,
-    #     tgt_layer
+    #     start_image,
+    #     n_iter=100,
     # )
     #
-    # plt.title("All {} channels of layer {}".format(
-    #     get_number_of_channels(tgt_layer, graph),
-    #     tgt_layer)
-    # )
+    # display_image(vis_normalize(processed_image))
+    # plt.title("Simple Gradient Ascent")
+
+    # -----------------------------------------------------------------------------------
+    # All Channels of specified Layer
+    # -----------------------------------------------------------------------------------
+    visualize_all_channels(
+        start_image,
+        graph,
+        input_cb,
+        tgt_layer
+    )
 
     # -----------------------------------------------------------------------------------
     # End
