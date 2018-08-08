@@ -2,3 +2,4 @@ model/PIOD
 model/protos
 *.pyc
 .idea/
+/logs
