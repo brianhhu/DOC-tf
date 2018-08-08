@@ -64,6 +64,63 @@ def simple_gradient_ascent(tgt_cb, in_cb, in_img, n_iter=20, step=1.0):
     return vis_normalize(img)
 
 
+def get_number_of_channels(tgt_l, model_graph):
+    """
+    Get the number of channels in a specified layer
+    :param tgt_l:
+    :param model_graph:
+    :return:
+    """
+    return int(model_graph.get_tensor_by_name(tgt_l + ':0').get_shape()[-1])
+
+
+def visualize_all_channels(img, model_graph, in_cb, tgt_l, margin=3, n_iter=50):
+    """
+
+    :param img:
+    :param model_graph:
+    :param in_cb:
+    :param tgt_l:
+    :param margin:
+    :param n_iter:
+    :return:
+    """
+
+    n_channels = get_number_of_channels(tgt_l, model_graph)
+    print("{} has {} channels".format(tgt_l, n_channels))
+
+    tile_d = np.int(np.ceil(np.sqrt(n_channels)))  # Single dimension of tiled image
+
+    r = img.shape[1]
+    c = img.shape[2]
+
+    width = (r + margin) * tile_d
+    height = (c + margin) * tile_d
+
+    tiled_img = np.zeros((width, height, img.shape[3]))
+
+    for tgt_chan in range(n_channels):
+
+        r_idx = tgt_chan / tile_d
+        c_idx = tgt_chan - r_idx * tile_d
+        print("processing channel {}, (r,c)= {},{}".format(tgt_chan, r_idx, c_idx))
+
+        processed_img = simple_gradient_ascent(
+            tgt_layer_cb[:, :, :, tgt_chan],
+            in_cb,
+            img,
+            n_iter=n_iter,
+        )
+
+        tiled_img[
+            r_idx * (r + margin): r_idx * (r + margin) + r,
+            c_idx * (c + margin): c_idx * (c + margin) + c,
+            :
+        ] = processed_img
+
+    display_image(tiled_img)
+
+
 if __name__ == '__main__':
     plt.ion()
     np.random.seed(7)
@@ -102,7 +159,7 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------------
     # Initialization
     # -----------------------------------------------------------------------------------
-    tgt_layer = 'block_4/convolution'
+    tgt_layer = 'block_1/convolution_1'
     # tgt_layer = 'block_7/conv2d_transpose'
 
     # Start with a gray image with noise
@@ -114,10 +171,10 @@ if __name__ == '__main__':
     # -----------------------------------------------------------------------------------
     # Single Channel of specified layer
     # -----------------------------------------------------------------------------------
-    tgt_channel = 0
+    tgt_channel = 3
 
     processed_image = simple_gradient_ascent(
-        tgt_layer_cb[:, :, :, tgt_channel],
+        tgt_layer_cb[:, 100, 100, tgt_channel],
         input_cb,
         start_image,
         n_iter=100,
@@ -129,46 +186,17 @@ if __name__ == '__main__':
     # # -----------------------------------------------------------------------------------
     # # All Channels of specified Layer
     # # -----------------------------------------------------------------------------------
-    # n_channels = int(graph.get_tensor_by_name(tgt_layer + ':0').get_shape()[-1])
-    # print("{} has {} channels".format(tgt_layer, n_channels))
+    # visualize_all_channels(
+    #     start_image,
+    #     graph,
+    #     input_cb,
+    #     tgt_layer
+    # )
     #
-    # tile_d = np.int(np.ceil(np.sqrt(n_channels)))  # Single dimension of tiled image
-    # tile_margin = 3
-    #
-    # r = start_image.shape[1]
-    # c = start_image.shape[2]
-    # #
-    # # width = (tile_d * r) + ((tile_d - 1) * tile_margin)
-    # # height = (tile_d * c) + ((tile_d - 1) * tile_margin)
-    #
-    # width = (r + tile_margin) * tile_d
-    # height = (c+tile_margin) * tile_d
-    #
-    # tiled_image = np.zeros((width, height, start_image.shape[3]))
-    #
-    # for tgt_channel in range(n_channels):
-    #
-    #     r_idx = tgt_channel / tile_d
-    #     c_idx = tgt_channel - r_idx * tile_d
-    #     print("processing channel {}, (r,c)= {},{}".format(tgt_channel, r_idx, c_idx))
-    #
-    #     processed_img = simple_gradient_ascent(
-    #         tgt_layer_cb[:, :, :, tgt_channel],
-    #         input_cb,
-    #         start_image,
-    #         n_iter=50,
-    #     )
-    #
-    #     # print ("(r {},{})".format(r_idx * (r + tile_margin), (r_idx + 1) * (r + tile_margin)))
-    #     # print ("(c {},{})".format(c_idx * (c + tile_margin), (c_idx + 1) * (c + tile_margin)))
-    #
-    #     tiled_image[
-    #         r_idx * (r + tile_margin): r_idx * (r + tile_margin) + r,
-    #         c_idx * (c + tile_margin): c_idx * (c + tile_margin) + c,
-    #         :
-    #     ] = processed_img
-    #
-    # display_image(tiled_image)
+    # plt.title("All {} channels of layer {}".format(
+    #     get_number_of_channels(tgt_layer, graph),
+    #     tgt_layer)
+    # )
 
     # -----------------------------------------------------------------------------------
     # End
