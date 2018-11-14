@@ -1,3 +1,5 @@
+import csv
+import os
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
@@ -142,7 +144,14 @@ def standard_test(input, layer, unit_index, preferred_stimulus):
     stimulus_D = get_image((400, 400, 3), preferred_colour)
     add_rectangle(stimulus_D, position_2, square_shape, angle, bg_colour)
 
-    input_data = np.stack((stimulus_A, stimulus_B, stimulus_C, stimulus_D))
+    stimulus_pref = get_image((400, 400, 3), bg_colour)
+    add_rectangle(stimulus_pref,
+                  [200,200],
+                  (preferred_stimulus['width'], preferred_stimulus['length']),
+                  preferred_stimulus['angle'],
+                  preferred_colour)
+
+    input_data = np.stack((stimulus_A, stimulus_B, stimulus_C, stimulus_D, stimulus_pref))
 
     # print(input_data.shape)
     # plt.imshow(stimulus_D)
@@ -159,8 +168,8 @@ def standard_test(input, layer, unit_index, preferred_stimulus):
         centre = (int(activities.shape[1] / 2), int(activities.shape[2] / 2))
         responses = activities[:, centre[0], centre[1], unit_index]
 
-    m = np.mean(responses)
-    A, B, C, D = responses
+    m = np.mean(responses[:4])
+    A, B, C, D, P = responses
     side = np.abs((A+C)/2 - (B+D)/2) / m * 100
     contrast = np.abs((A+B)/2 - (C+D)/2) / m * 100
     # print('side: {} contrast: {}'.format(side, contrast))
@@ -169,8 +178,6 @@ def standard_test(input, layer, unit_index, preferred_stimulus):
 
     #TODO: the side does involve a contrast difference if the square doesn't fully cover the classical RF,
     #   but as this net is feedforward, there can't be a border effect if it does
-    #TODO: generate 10 Poisson random samples from each condition mean for ANOVA
-    #TODO: how to set scale for Poisson samples? maybe assume preferred stim evokes a certain rate?
 
 
 def count_feature_maps(layer):
@@ -183,24 +190,28 @@ def count_feature_maps(layer):
     return result
 
 
-def standard_test_full_layer(layer, preferred_stimuli):
+def standard_test_full_layer(layer, preferred_stimuli, base_path='.'):
     # layer = 'relu1_1:0'
     m = count_feature_maps(layer)
 
     border_responses = []
     contrast_responses = []
     means = []
+    responses = []
     for unit_index in range(m):
         print('{} of {} for {}'.format(unit_index, m, layer))
         result = standard_test(input_tf, layer, unit_index, parameters[preferred_stimuli[layer][unit_index]])
         border_responses.append(result['side'])
         contrast_responses.append(result['contrast'])
         means.append(result['mean'])
+        responses.append(result['responses'])
+        print(result['responses'])
 
-    with open('border-{}.pkl'.format(layer), 'wb') as file:
+    with open(os.path.join(base_path, 'border-{}.pkl'.format(layer)), 'wb') as file:
         pickle.dump({'border_responses': border_responses,
                      'contrast_responses': contrast_responses,
-                     'means': means}, file)
+                     'means': means,
+                     'responses': responses}, file)
 
     border_responses = [br for br in border_responses if not np.isnan(br)]
     contrast_responses = [cr for cr in contrast_responses if not np.isnan(cr)]
@@ -226,6 +237,104 @@ def standard_test_full_layer(layer, preferred_stimuli):
     # plt.show()
 
 
+def get_poisson_folder(base_folder, layer):
+    """
+    This is used in a couple of different places, so it's extracted here to ensure
+    consistency.
+
+    :param base_folder: folder that contains stardard_test results
+    :param layer: network layer name
+    :return: sub-folder for Poisson model results
+    """
+    return '{}/border-{}'.format(base_folder, layer.replace(':', '_'))
+
+
+def export_poisson(base_folder, layer):
+    """
+    Uses data saved during standard_test. Exports fake Poisson spike counts
+    to CSV. The intent is to use R for ANOVA, for comparison with Zhou et al.
+    Figure 16.
+
+    :param base_folder: folder that contains stardard_test results
+    :param layer: layer name
+    """
+
+    max_rate = 50
+    trial_duration = 1  # " ... based on mean firing rates during successive 1 sec intervals"
+
+    with open('{}/border-{}.pkl'.format(base_folder, layer), 'rb') as file:
+        data = pickle.load(file)
+
+    destination_folder = get_poisson_folder(base_folder, layer)
+    os.makedirs(destination_folder, exist_ok=True)
+
+    for i in range(len(data['responses'])):
+        A, B, C, D, P = data['responses'][i]
+        result_file = '{}/poisson-{:04}.csv'.format(destination_folder, i)
+
+        if P > 0:
+            with open(result_file, 'w', newline='\r\n') as csvfile:
+                writer = csv.writer(csvfile, delimiter=',')
+                writer.writerow(('count', 'condition', 'object', 'foreground'))
+
+                mean_count_A = A / P * max_rate * trial_duration
+                mean_count_B = B / P * max_rate * trial_duration
+                mean_count_C = C / P * max_rate * trial_duration
+                mean_count_D = D / P * max_rate * trial_duration
+
+                for j in range(10):
+                    writer.writerow((np.random.poisson(mean_count_A), 'A', 'left', 'right'))
+                    writer.writerow((np.random.poisson(mean_count_B), 'B', 'right', 'right'))
+                    writer.writerow((np.random.poisson(mean_count_C), 'C', 'left', 'left'))
+                    writer.writerow((np.random.poisson(mean_count_D), 'D', 'right', 'left'))
+
+
+def plot_poisson(base_folder, layer):
+    with open('{}/border-{}.pkl'.format(base_folder, layer), 'rb') as file:
+        data = pickle.load(file)
+    responses = data['responses']
+
+    prob_file= os.path.join(get_poisson_folder(base_folder, layer), 'probabilities.csv')
+
+    p_object = np.ones(len(responses))
+    p_foreground = np.ones(len(responses))
+    with open(prob_file, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        for row in reader:
+            if row[0] == '':
+                assert row[1] == 'index'
+                assert row[2] == 'p-object'
+                assert row[3] == 'p-foreground'
+            else:
+                index = int(row[1])
+                p_object[index] = float(row[2])
+                p_foreground[index] = float(row[3])
+
+    side = np.array([np.nan] * len(responses))
+    contrast = np.array([np.nan] * len(responses))
+    for i in range(len(responses)):
+        A, B, C, D, P = responses[i]
+        if P > 0:
+            side[i] = np.abs((A+C)/2 - (B+D)/2) / P
+            contrast[i] = np.abs((A+B)/2 - (C+D)/2) / P
+
+    significance_threshold = .01
+    o_sig = p_object < significance_threshold
+    f_sig = p_foreground < significance_threshold
+    o_nsig = p_object > significance_threshold
+    f_nsig = p_foreground > significance_threshold
+
+    plt.scatter(side[np.logical_and(o_sig, f_nsig)], contrast[np.logical_and(o_sig, f_nsig)], c='r', marker='.')
+    plt.scatter(side[np.logical_and(o_nsig, f_sig)], contrast[np.logical_and(o_nsig, f_sig)], c='g', marker='x')
+    plt.scatter(side[np.logical_and(o_nsig, f_nsig)], contrast[np.logical_and(o_nsig, f_nsig)], c='g', marker='.')
+    plt.scatter(side[np.logical_and(o_sig, f_sig)], contrast[np.logical_and(o_sig, f_sig)], c='r', marker='x')
+    plt.xlabel('Normalized ownership difference')
+    plt.xlabel('Normalized contrast difference')
+    plt.legend(('only ownership', 'only contrast', 'neither', 'both'))
+    plt.title('significance at alpha = {}'.format(significance_threshold))
+    plt.show()
+
+
 if __name__ == '__main__':
     # model_converted = KitModel('model/hed.npy')
     model_converted = KitModel('model/doc.npy')
@@ -248,15 +357,6 @@ if __name__ == '__main__':
     preferred_stimuli = data['preferred_stimuli']
 
     for layer in layers:
-        standard_test_full_layer(layer, preferred_stimuli)
-
-    # import csv
-    # with open('foo.csv', 'w', newline='\r\n') as csvfile:
-    #     spamwriter = csv.writer(csvfile, delimiter=',')
-    #     spamwriter.writerow(('count', 'group'))
-    #     spamwriter.writerow(('10', 'a'))
-    #     spamwriter.writerow(('12', 'a'))
-    #
-    # # in R studio ...
-    # # data <- read.csv(file=file.choose(), header=TRUE, sep=",")
-    
+        standard_test_full_layer(layer, preferred_stimuli, base_path='./generated-files/doc')
+    # export_poisson('./generated-files/doc', layers[0])
+    # plot_poisson('./generated-files/doc', layers[0])
