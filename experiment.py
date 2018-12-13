@@ -7,9 +7,10 @@ import tensorflow as tf
 # from model.hed import KitModel
 from model.doc import KitModel
 from border.stimuli import Colours, get_image, add_rectangle
+from keras import applications
 
 
-def find_optimal_bars(input, layers):
+def find_optimal_bars(input, layers, im_shape=(400,400)):
     """
     Finds bar stimuli that optimally activate each of the feature maps in a single layer of a
     convolutional network, approximating the procedure in:
@@ -73,8 +74,8 @@ def find_optimal_bars(input, layers):
                                 'width': width,
                                 'angle': angle})
 
-                            stimulus = get_image((400, 400, 3), bg_colour)
-                            add_rectangle(stimulus, (200, 200),
+                            stimulus = get_image((im_shape[0], im_shape[1], 3), bg_colour)
+                            add_rectangle(stimulus, (im_shape[0]/2, im_shape[1]/2),
                                           (width, length), angle, RGB)
 
                             # plt.imshow(stimulus)
@@ -104,7 +105,7 @@ def find_optimal_bars(input, layers):
     return parameters, responses, preferred_stimuli
 
 
-def standard_test(input, layer, unit_index, preferred_stimulus):
+def standard_test(input, layer, unit_index, preferred_stimulus, im_width):
     # Note: we put edge of square on centre of preferred-stimulus bar
     # Zhou et al. determined significance of the effects of contrast and border ownership with
     # a 3-factor ANOVA, significance .01. The factors were side-of-ownership, contrast polarity,
@@ -121,32 +122,34 @@ def standard_test(input, layer, unit_index, preferred_stimulus):
 
     preferred_colour = preferred_stimulus['colour']
 
-    square_shape = (100,100)
+    square_shape = (im_width/4, im_width/4)
 
     angle = preferred_stimulus['angle']
     rotation = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
-    position_1 = np.add(np.dot(rotation, np.array([-50, 0]).transpose()), [200,200]).astype(np.int)
-    position_2 = np.add(np.dot(rotation, np.array([50, 0]).transpose()), [200,200]).astype(np.int)
+    offset = im_width/8
+    centre = im_width/2
+    position_1 = np.add(np.dot(rotation, np.array([-offset, 0]).transpose()), [centre,centre]).astype(np.int)
+    position_2 = np.add(np.dot(rotation, np.array([offset, 0]).transpose()), [centre,centre]).astype(np.int)
 
     # preferred_shape = (preferred_stimulus['width'], preferred_stimulus['length'])
     # add_rectangle(stimulus, (200,200), preferred_shape, angle, preferred_colour)
 
     # Stimuli as in panels A-D of Zhou et al. Figure 2
-    stimulus_A = get_image((400, 400, 3), preferred_colour)
+    stimulus_A = get_image((im_width, im_width, 3), preferred_colour)
     add_rectangle(stimulus_A, position_1, square_shape, angle, bg_colour)
 
-    stimulus_B = get_image((400, 400, 3), bg_colour)
+    stimulus_B = get_image((im_width, im_width, 3), bg_colour)
     add_rectangle(stimulus_B, position_2, square_shape, angle, preferred_colour)
 
-    stimulus_C = get_image((400, 400, 3), bg_colour)
+    stimulus_C = get_image((im_width, im_width, 3), bg_colour)
     add_rectangle(stimulus_C, position_1, square_shape, angle, preferred_colour)
 
-    stimulus_D = get_image((400, 400, 3), preferred_colour)
+    stimulus_D = get_image((im_width, im_width, 3), preferred_colour)
     add_rectangle(stimulus_D, position_2, square_shape, angle, bg_colour)
 
-    stimulus_pref = get_image((400, 400, 3), bg_colour)
+    stimulus_pref = get_image((im_width, im_width, 3), bg_colour)
     add_rectangle(stimulus_pref,
-                  [200,200],
+                  [centre,centre],
                   (preferred_stimulus['width'], preferred_stimulus['length']),
                   preferred_stimulus['angle'],
                   preferred_colour)
@@ -190,8 +193,11 @@ def count_feature_maps(layer):
     return result
 
 
-def standard_test_full_layer(layer, preferred_stimuli, base_path='.'):
-    # layer = 'relu1_1:0'
+def clean_layer_name(layer):
+    return layer.replace(':', '_').replace('/', '_')
+
+
+def standard_test_full_layer(layer, preferred_stimuli, im_width=400, base_path='.'):
     m = count_feature_maps(layer)
 
     border_responses = []
@@ -200,14 +206,15 @@ def standard_test_full_layer(layer, preferred_stimuli, base_path='.'):
     responses = []
     for unit_index in range(m):
         print('{} of {} for {}'.format(unit_index, m, layer))
-        result = standard_test(input_tf, layer, unit_index, parameters[preferred_stimuli[layer][unit_index]])
+        result = standard_test(input_tf, layer, unit_index, parameters[preferred_stimuli[layer][unit_index]], im_width=im_width)
         border_responses.append(result['side'])
         contrast_responses.append(result['contrast'])
         means.append(result['mean'])
         responses.append(result['responses'])
         print(result['responses'])
 
-    with open(os.path.join(base_path, 'border-{}.pkl'.format(layer)), 'wb') as file:
+    filename = 'border-{}.pkl'.format(clean_layer_name(layer))
+    with open(os.path.join(base_path, filename), 'wb') as file:
         pickle.dump({'border_responses': border_responses,
                      'contrast_responses': contrast_responses,
                      'means': means,
@@ -232,8 +239,8 @@ def standard_test_full_layer(layer, preferred_stimuli, base_path='.'):
     plt.xlabel('Contrast Responses')
     plt.ylabel('Border Responses')
     plt.tight_layout()
-    plt.savefig('border-ownership-{}.eps'.format(layer))
-    plt.savefig('border-ownership-{}.jpg'.format(layer))
+    plt.savefig(os.path.join(base_path, 'border-ownership-{}.eps'.format(clean_layer_name(layer))))
+    plt.savefig(os.path.join(base_path, 'border-ownership-{}.jpg'.format(clean_layer_name(layer))))
     # plt.show()
 
 
@@ -307,8 +314,13 @@ def plot_poisson(base_folder, layer):
                 assert row[3] == 'p-foreground'
             else:
                 index = int(row[1])
-                p_object[index] = float(row[2])
-                p_foreground[index] = float(row[3])
+                try:
+                    p_object[index] = float(row[2])
+                    p_foreground[index] = float(row[3])
+                except ValueError:
+                    p_object[index] = None
+                    p_foreground[index] = None
+
 
     side = np.array([np.nan] * len(responses))
     contrast = np.array([np.nan] * len(responses))
@@ -332,31 +344,63 @@ def plot_poisson(base_folder, layer):
     plt.xlabel('Normalized contrast difference')
     plt.legend(('only ownership', 'only contrast', 'neither', 'both'))
     plt.title('significance at alpha = {}'.format(significance_threshold))
+    fig_file = os.path.join(get_poisson_folder(base_folder, layer), 'poisson-probabilities.eps')
+    plt.savefig(fig_file)
     plt.show()
 
 
 if __name__ == '__main__':
-    # model_converted = KitModel('model/hed.npy')
-    model_converted = KitModel('model/doc.npy')
-    input_tf, _ = model_converted
-    # Define layers to perform experiment on
-    layers = ['relu1_1', 'relu1_2', 'relu2_1', 'relu2_2', 'relu3_1', 'relu3_2',
-              'relu3_3', 'relu4_1', 'relu4_2', 'relu4_3', 'relu5_1', 'relu5_2', 'relu5_3']
-    device_append = ':0'
-    layers = [layer + device_append for layer in layers]
+    network = 'resnet'
+    # network = 'doc'
+    # network = 'hed'
+    FIND_OPTIMAL_BARS = True
+    DO_STANDARD_TEST = True
 
-    # parameters, responses, preferred_stimuli = find_optimal_bars(
-    #     input_tf, layers)
-    # with open('doc/preferred-stimuli.pkl', 'wb') as file:
-    #     pickle.dump({'parameters': parameters, 'responses': responses, 'preferred_stimuli': preferred_stimuli}, file)
+    if network == 'resnet':
+        im_width = 224
+        input_tf = applications.ResNet50().input
 
-    with open('doc/preferred-stimuli.pkl', 'rb') as file:
-        data = pickle.load(file)
-    parameters = data['parameters']
-    responses = data['responses']
-    preferred_stimuli = data['preferred_stimuli']
+        with tf.Session() as sess:
+            init = tf.global_variables_initializer()
+            sess.run(init)
+            ops = sess.graph.get_operations()
+            layers = [op.name + ':0' for op in ops if 'Relu' in op.name]
+            check = [sess.graph.get_tensor_by_name(layer) for layer in layers]
 
-    for layer in layers:
-        standard_test_full_layer(layer, preferred_stimuli, base_path='./generated-files/doc')
-    # export_poisson('./generated-files/doc', layers[0])
-    # plot_poisson('./generated-files/doc', layers[0])
+    elif network == 'doc' or network == 'hed':
+        im_width = 400
+        if network == 'doc':
+            model_converted = KitModel('model/doc.npy')
+        else:
+            model_converted = KitModel('model/hed.npy')
+
+        input_tf, _ = model_converted
+
+        # Define layers to perform experiment on
+        layers = ['relu1_1', 'relu1_2', 'relu2_1', 'relu2_2', 'relu3_1', 'relu3_2',
+                  'relu3_3', 'relu4_1', 'relu4_2', 'relu4_3', 'relu5_1', 'relu5_2', 'relu5_3']
+        device_append = ':0'
+        layers = [layer + device_append for layer in layers]
+
+    else:
+        raise Exception('unknown network')
+
+    if FIND_OPTIMAL_BARS:
+        parameters, responses, preferred_stimuli = find_optimal_bars(
+            input_tf, layers, im_shape=(im_width, im_width))
+        with open(network + '/preferred-stimuli.pkl', 'wb') as file:
+            pickle.dump({'parameters': parameters, 'responses': responses,
+                         'preferred_stimuli': preferred_stimuli}, file)
+    else: # load from file
+        with open(network + '/preferred-stimuli.pkl', 'rb') as file:
+            data = pickle.load(file)
+        parameters = data['parameters']
+        responses = data['responses']
+        preferred_stimuli = data['preferred_stimuli']
+
+    if DO_STANDARD_TEST:
+        for layer in layers:
+            standard_test_full_layer(layer, preferred_stimuli, im_width=im_width,
+                                     base_path='./generated-files/'+network)
+        # export_poisson('./generated-files/'+network, layers[-1])
+        # plot_poisson('./generated-files/'+network, layers[0])
