@@ -4,8 +4,6 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-# from model.hed import KitModel
-from model.doc import KitModel
 from border.stimuli import Colours, get_image, add_rectangle
 from keras import applications
 
@@ -122,11 +120,13 @@ def standard_test(input, layer, unit_index, preferred_stimulus, im_width):
 
     preferred_colour = preferred_stimulus['colour']
 
-    square_shape = (im_width/4, im_width/4)
+    # square_shape = (im_width/4, im_width/4)
+    square_shape = (im_width/8, im_width/8) ###########
 
     angle = preferred_stimulus['angle']
     rotation = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
-    offset = im_width/8
+    # offset = im_width/8
+    offset = im_width/16 ##################
     centre = im_width/2
     position_1 = np.add(np.dot(rotation, np.array([-offset, 0]).transpose()), [centre,centre]).astype(np.int)
     position_2 = np.add(np.dot(rotation, np.array([offset, 0]).transpose()), [centre,centre]).astype(np.int)
@@ -350,10 +350,10 @@ def plot_poisson(base_folder, layer):
 
 
 if __name__ == '__main__':
-    network = 'resnet'
+    # network = 'resnet'
     # network = 'doc'
-    # network = 'hed'
-    FIND_OPTIMAL_BARS = True
+    network = 'hed'
+    FIND_OPTIMAL_BARS = False
     DO_STANDARD_TEST = True
 
     if network == 'resnet':
@@ -366,12 +366,15 @@ if __name__ == '__main__':
             ops = sess.graph.get_operations()
             layers = [op.name + ':0' for op in ops if 'Relu' in op.name]
             check = [sess.graph.get_tensor_by_name(layer) for layer in layers]
+            # layers = layers[45:] ################# enter last complete layer number
 
     elif network == 'doc' or network == 'hed':
         im_width = 400
         if network == 'doc':
+            from model.doc import KitModel
             model_converted = KitModel('model/doc.npy')
         else:
+            from model.hed import KitModel
             model_converted = KitModel('model/hed.npy')
 
         input_tf, _ = model_converted
@@ -401,6 +404,6 @@ if __name__ == '__main__':
     if DO_STANDARD_TEST:
         for layer in layers:
             standard_test_full_layer(layer, preferred_stimuli, im_width=im_width,
-                                     base_path='./generated-files/'+network)
+                                     base_path='./generated-files/small-square-'+network)
         # export_poisson('./generated-files/'+network, layers[-1])
         # plot_poisson('./generated-files/'+network, layers[0])
