@@ -120,13 +120,11 @@ def standard_test(input, layer, unit_index, preferred_stimulus, im_width):
 
     preferred_colour = preferred_stimulus['colour']
 
-    # square_shape = (im_width/4, im_width/4)
-    square_shape = (im_width/8, im_width/8) ###########
+    square_shape = (im_width/4, im_width/4)
 
     angle = preferred_stimulus['angle']
     rotation = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
-    # offset = im_width/8
-    offset = im_width/16 ##################
+    offset = im_width/8
     centre = im_width/2
     position_1 = np.add(np.dot(rotation, np.array([-offset, 0]).transpose()), [centre,centre]).astype(np.int)
     position_2 = np.add(np.dot(rotation, np.array([offset, 0]).transpose()), [centre,centre]).astype(np.int)
@@ -404,6 +402,6 @@ if __name__ == '__main__':
     if DO_STANDARD_TEST:
         for layer in layers:
             standard_test_full_layer(layer, preferred_stimuli, im_width=im_width,
-                                     base_path='./generated-files/small-square-'+network)
+                                     base_path='./generated-files/'+network)
         # export_poisson('./generated-files/'+network, layers[-1])
         # plot_poisson('./generated-files/'+network, layers[0])
