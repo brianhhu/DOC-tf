@@ -4,8 +4,6 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-# from model.hed import KitModel
-from model.doc import KitModel
 from border.stimuli import Colours, get_image, add_rectangle
 from keras import applications
 
@@ -350,10 +348,10 @@ def plot_poisson(base_folder, layer):
 
 
 if __name__ == '__main__':
-    network = 'resnet'
+    # network = 'resnet'
     # network = 'doc'
-    # network = 'hed'
-    FIND_OPTIMAL_BARS = True
+    network = 'hed'
+    FIND_OPTIMAL_BARS = False
     DO_STANDARD_TEST = True
 
     if network == 'resnet':
@@ -366,12 +364,15 @@ if __name__ == '__main__':
             ops = sess.graph.get_operations()
             layers = [op.name + ':0' for op in ops if 'Relu' in op.name]
             check = [sess.graph.get_tensor_by_name(layer) for layer in layers]
+            # layers = layers[45:] ################# enter last complete layer number
 
     elif network == 'doc' or network == 'hed':
         im_width = 400
         if network == 'doc':
+            from model.doc import KitModel
             model_converted = KitModel('model/doc.npy')
         else:
+            from model.hed import KitModel
             model_converted = KitModel('model/hed.npy')
 
         input_tf, _ = model_converted

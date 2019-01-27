@@ -20,6 +20,7 @@ class Colours:
             'White-gray–black': {'x': 0.30, 'y': 0.32, 'Y': (38,8.8,1.2)},
             'Light gray (background)': {'x': 0.30, 'y': 0.32, 'Y': [20]}
         }
+        self.black = [0, 0, 0]
 
     def _convert_xyY_XYZ(self, x, y, Y):
         # see https: // en.wikipedia.org / wiki / CIE_1931_color_space
@@ -123,12 +124,153 @@ def add_C(image, centre, shape, angle, RGB):
         image[rr, cc, i] = RGB[i]
 
 
+def get_preferred_stimulus(im_width, preferred_stimulus):
+    """
+    :param im_width: # of pixels
+    :param preferred_stimulus: a dictionary with entries colour, length, width, angle (produced
+        by experiment.find_optimal_bars)
+    :return: stimulus image
+    """
+    preferred_colour = preferred_stimulus['colour']
+    centre = im_width/2
+    stimulus_pref = get_image((im_width, im_width, 3), bg_colour)
+    add_rectangle(stimulus_pref,
+                  [centre,centre],
+                  (preferred_stimulus['width'], preferred_stimulus['length']),
+                  preferred_stimulus['angle'],
+                  preferred_colour)
+    return stimulus_pref
+
+
+def get_standard_test_stimuli(im_width, preferred_stimulus):
+    colours = Colours()
+    bg_colour_name = 'Light gray (background)'
+    bg_colour = colours.get_RGB(bg_colour_name, 0)
+
+    preferred_colour = preferred_stimulus['colour']
+
+    square_shape = (im_width/4, im_width/4)
+
+    angle = preferred_stimulus['angle']
+    rotation = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+    offset = im_width/8
+    centre = im_width/2
+    position_1 = np.add(np.dot(rotation, np.array([-offset, 0]).transpose()), [centre,centre]).astype(np.int)
+    position_2 = np.add(np.dot(rotation, np.array([offset, 0]).transpose()), [centre,centre]).astype(np.int)
+
+    # Stimuli as in panels A-D of Zhou et al. Figure 2
+    stimulus_A = get_image((im_width, im_width, 3), preferred_colour)
+    add_rectangle(stimulus_A, position_1, square_shape, angle, bg_colour)
+
+    stimulus_B = get_image((im_width, im_width, 3), bg_colour)
+    add_rectangle(stimulus_B, position_2, square_shape, angle, preferred_colour)
+
+    stimulus_C = get_image((im_width, im_width, 3), bg_colour)
+    add_rectangle(stimulus_C, position_1, square_shape, angle, preferred_colour)
+
+    stimulus_D = get_image((im_width, im_width, 3), preferred_colour)
+    add_rectangle(stimulus_D, position_2, square_shape, angle, bg_colour)
+
+    return stimulus_A, stimulus_B, stimulus_C, stimulus_D
+
+
+def get_overlapping_squares_stimuli(im_width, preferred_stimulus):
+    colours = Colours()
+    bg_colour_name = 'Light gray (background)'
+    bg_colour = colours.get_RGB(bg_colour_name, 0)
+
+    preferred_colour = preferred_stimulus['colour']
+
+    square_shape = (im_width/4, im_width/4)
+    rectangle_shape = (1.3*im_width/4, im_width/4)
+
+    angle = preferred_stimulus['angle']
+    rotation = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
+    fg_offset_x = im_width/8
+    fg_offset_y = -0.15*im_width/4
+    bg_offset_x = fg_offset_x-0.15*im_width/4
+    bg_offset_y = 0.15*im_width/4
+    centre = im_width/2
+    position_1 = np.add(np.dot(rotation, np.array([-fg_offset_x, fg_offset_y]).transpose()), [centre,centre]).astype(np.int)
+    position_2 = np.add(np.dot(rotation, np.array([fg_offset_x, -fg_offset_y]).transpose()), [centre,centre]).astype(np.int)
+    position_1b = np.add(np.dot(rotation, np.array([-bg_offset_x, -bg_offset_y]).transpose()), [centre,centre]).astype(np.int)
+    position_2b = np.add(np.dot(rotation, np.array([bg_offset_x, bg_offset_y]).transpose()), [centre,centre]).astype(np.int)
+
+    # Stimuli as in right 4 panels of Zhou et al. Figure 23
+    stimulus_A = get_image((im_width, im_width, 3), colours.black)
+    add_rectangle(stimulus_A, position_2b, rectangle_shape, angle, preferred_colour)
+    add_rectangle(stimulus_A, position_1, square_shape, angle, bg_colour)
+
+    stimulus_B = get_image((im_width, im_width, 3), colours.black)
+    add_rectangle(stimulus_B, position_1b, rectangle_shape, angle, bg_colour)
+    add_rectangle(stimulus_B, position_2, square_shape, angle, preferred_colour)
+
+    stimulus_C = get_image((im_width, im_width, 3), colours.black)
+    add_rectangle(stimulus_C, position_2b, rectangle_shape, angle, bg_colour)
+    add_rectangle(stimulus_C, position_1, square_shape, angle, preferred_colour)
+
+    stimulus_D = get_image((im_width, im_width, 3), colours.black)
+    add_rectangle(stimulus_D, position_1b, rectangle_shape, angle, preferred_colour)
+    add_rectangle(stimulus_D, position_2, square_shape, angle, bg_colour)
+
+    return stimulus_A, stimulus_B, stimulus_C, stimulus_D
+
+
+def get_c_shape_stimuli(im_width, preferred_stimulus):
+    colours = Colours()
+    bg_colour_name = 'Light gray (background)'
+    bg_colour = colours.get_RGB(bg_colour_name, 0)
+
+    preferred_colour = preferred_stimulus['colour']
+
+    c_shape = (im_width/4, im_width/2)
+
+    angle = preferred_stimulus['angle']
+    centre = im_width/2
+    position = np.array([centre,centre]).astype(np.int)
+
+    # Stimuli as in centre panels of Zhou et al. Figure 23
+    stimulus_A = get_image((im_width, im_width, 3), bg_colour)
+    add_C(stimulus_A, position, c_shape, angle+np.pi, preferred_colour)
+
+    stimulus_B = get_image((im_width, im_width, 3), preferred_colour)
+    add_C(stimulus_B, position, c_shape, angle, bg_colour)
+
+    stimulus_C = get_image((im_width, im_width, 3), preferred_colour)
+    add_C(stimulus_C, position, c_shape, angle+np.pi, bg_colour)
+
+    stimulus_D = get_image((im_width, im_width, 3), bg_colour)
+    add_C(stimulus_D, position, c_shape, angle, preferred_colour)
+
+    return stimulus_A, stimulus_B, stimulus_C, stimulus_D
+
+
 if __name__ == '__main__':
     colours = Colours()
-    bg_colour = colours.get_RGB('Light gray (background)', 0)
+    # bg_colour = colours.get_RGB('Light gray (background)', 0)
+    # image = get_image((500, 500, 3), bg_colour)
+    # add_C(image, (300,300), (100,200), .6*np.pi, colours.get_RGB('Red–brown', 0))
+    # add_rectangle(image, (200,200), (100,200), .75*np.pi, colours.get_RGB('Blue-azure', 0))
+    # plt.imshow(image)
+    # plt.show()
 
-    image = get_image((500, 500, 3), bg_colour)
-    add_C(image, (300,300), (100,200), .6*np.pi, colours.get_RGB('Red–brown', 0))
-    add_rectangle(image, (200,200), (100,200), .75*np.pi, colours.get_RGB('Blue-azure', 0))
-    plt.imshow(image)
+    preferred_stimulus = {
+        'colour': colours.get_RGB('Red–brown', 0),
+        'length': 80,
+        'width': 8,
+        'angle': np.pi * .25}
+    # stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_standard_test_stimuli(400, preferred_stimulus)
+    # stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_overlapping_squares_stimuli(400, preferred_stimulus)
+    stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_c_shape_stimuli(400, preferred_stimulus)
+
+    plt.figure()
+    plt.subplot(2,2,1)
+    plt.imshow(stimulus_A)
+    plt.subplot(2,2,2)
+    plt.imshow(stimulus_C)
+    plt.subplot(2,2,3)
+    plt.imshow(stimulus_B)
+    plt.subplot(2,2,4)
+    plt.imshow(stimulus_D)
     plt.show()
+
