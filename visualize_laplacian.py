@@ -4,6 +4,7 @@
 #  Ref = http://nbviewer.jupyter.org/github/tensorflow/tensorflow/blob/master/tensorflow/
 #        examples/tutorials/deepdream/deepdream.ipynb
 # ---------------------------------------------------------------------------------------
+import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 from functools import partial
@@ -228,6 +229,9 @@ def visualize_max_neuron_activation_lap_pyramid(t_layer_name, t_chan, t_loc, gra
         n_iter=n_iter,
     )
 
+    with open('visualize-lap-{}-{}-{}.pkl'.format(t_layer_name, t_chan, t_loc), 'wb') as f:
+        pickle.dump(final_img, f)
+
     display_image(vis_normalize(final_img))
     plt.title("Layer name {}. Channel Index {}. Neuron at index ({},{})".format(
         t_layer_name, t_chan, t_loc, t_loc))
@@ -363,33 +367,33 @@ if __name__ == '__main__':
     # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
     # plt.suptitle("Good Border Cell - Laplacian Method")
 
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 204
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Border Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 254
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Border Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 326
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Border Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 476
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Border Cell - Laplacian Method")
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 204
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Border Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 254
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Border Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 326
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Border Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 476
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Border Cell - Laplacian Method")
 
     # Good Contrast Cells
     tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
@@ -398,50 +402,50 @@ if __name__ == '__main__':
 
     visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
     plt.suptitle("Good Contrast Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 94
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Contrast Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 199
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Contrast Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 205
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Contrast Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 226
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Contrast Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 328
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Contrast Cell - Laplacian Method")
-
-    tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
-    tgt_channel = 491
-    center_neuron_idx = 8  # for size 256, 256
-
-    visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
-    plt.suptitle("Good Contrast Cell - Laplacian Method")
-
-    # -----------------------------------------------------------------------------------
-    # End
-    # -----------------------------------------------------------------------------------
-    input("Press any Key to Exit")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 94
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Contrast Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 199
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Contrast Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 205
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Contrast Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 226
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Contrast Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 328
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Contrast Cell - Laplacian Method")
+    #
+    # tgt_layer = 'convolution_12'  # the convolution operation right before relu5_3
+    # tgt_channel = 491
+    # center_neuron_idx = 8  # for size 256, 256
+    #
+    # visualize_max_neuron_activation_lap_pyramid(tgt_layer, tgt_channel, center_neuron_idx, graph)
+    # plt.suptitle("Good Contrast Cell - Laplacian Method")
+    #
+    # # -----------------------------------------------------------------------------------
+    # # End
+    # # -----------------------------------------------------------------------------------
+    # input("Press any Key to Exit")

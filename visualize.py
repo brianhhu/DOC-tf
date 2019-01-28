@@ -6,6 +6,7 @@
 # ---------------------------------------------------------------------------------------
 import matplotlib.pyplot as plt
 import numpy as np
+import pickle
 
 import tensorflow as tf
 
@@ -162,9 +163,14 @@ def visualize_max_neuron_activation(t_layer_name, t_chan, t_loc, g, n_iter=100):
         n_iter=n_iter,
     )
 
+
+    with open('visualize-{}-{}-{}.pkl'.format(t_layer_name, t_chan, t_loc), 'wb') as f:
+        pickle.dump(final_img, f)
+
     display_image(vis_normalize(final_img))
     plt.title("Layer name {}. Channel Index {}. Neuron at index ({},{})".format(
         t_layer_name, t_chan, t_loc, t_loc))
+    plt.savefig('visualize-{}-{}-{}.jpg'.format(t_layer_name, t_chan, t_loc))
 
 
 if __name__ == '__main__':
