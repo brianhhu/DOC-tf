@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from border.stimuli import Colours, get_image, add_rectangle
+from border.stimuli import get_preferred_stimulus, get_standard_test_stimuli, get_c_shape_stimuli, get_overlapping_squares_stimuli
 from keras import applications
 
 
@@ -114,49 +115,35 @@ def standard_test(input, layer, unit_index, preferred_stimulus, im_width):
     # I don't see where they mention the number of reps per condition, but there are 10 reps
     # in Figure 4.
 
-    colours = Colours()
-    bg_colour_name = 'Light gray (background)'
-    bg_colour = colours.get_RGB(bg_colour_name, 0)
+    stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_standard_test_stimuli(im_width, preferred_stimulus)
+    stimulus_pref = get_preferred_stimulus(im_width, preferred_stimulus)
 
-    preferred_colour = preferred_stimulus['colour']
+    return run_test(stimulus_A, stimulus_B, stimulus_C, stimulus_D, stimulus_pref, input, layer, unit_index)
 
-    square_shape = (im_width/4, im_width/4)
+    # input_data = np.stack((stimulus_A, stimulus_B, stimulus_C, stimulus_D, stimulus_pref))
+    #
+    # with tf.Session() as sess:
+    #     init = tf.global_variables_initializer()
+    #     sess.run(init)
+    #
+    #     model_tf = sess.graph.get_tensor_by_name(layer)
+    #     activities = sess.run(
+    #         model_tf, feed_dict={input: input_data})
+    #
+    #     centre = (int(activities.shape[1] / 2), int(activities.shape[2] / 2))
+    #     responses = activities[:, centre[0], centre[1], unit_index]
+    #
+    # m = np.mean(responses[:4])
+    # A, B, C, D, P = responses
+    # side = np.abs((A+C)/2 - (B+D)/2) / m * 100
+    # contrast = np.abs((A+B)/2 - (C+D)/2) / m * 100
+    # # print('side: {} contrast: {}'.format(side, contrast))
+    #
+    # return {'responses': responses, 'side': side, 'contrast': contrast, 'mean': m}
 
-    angle = preferred_stimulus['angle']
-    rotation = [[np.cos(angle), -np.sin(angle)], [np.sin(angle), np.cos(angle)]]
-    offset = im_width/8
-    centre = im_width/2
-    position_1 = np.add(np.dot(rotation, np.array([-offset, 0]).transpose()), [centre,centre]).astype(np.int)
-    position_2 = np.add(np.dot(rotation, np.array([offset, 0]).transpose()), [centre,centre]).astype(np.int)
 
-    # preferred_shape = (preferred_stimulus['width'], preferred_stimulus['length'])
-    # add_rectangle(stimulus, (200,200), preferred_shape, angle, preferred_colour)
-
-    # Stimuli as in panels A-D of Zhou et al. Figure 2
-    stimulus_A = get_image((im_width, im_width, 3), preferred_colour)
-    add_rectangle(stimulus_A, position_1, square_shape, angle, bg_colour)
-
-    stimulus_B = get_image((im_width, im_width, 3), bg_colour)
-    add_rectangle(stimulus_B, position_2, square_shape, angle, preferred_colour)
-
-    stimulus_C = get_image((im_width, im_width, 3), bg_colour)
-    add_rectangle(stimulus_C, position_1, square_shape, angle, preferred_colour)
-
-    stimulus_D = get_image((im_width, im_width, 3), preferred_colour)
-    add_rectangle(stimulus_D, position_2, square_shape, angle, bg_colour)
-
-    stimulus_pref = get_image((im_width, im_width, 3), bg_colour)
-    add_rectangle(stimulus_pref,
-                  [centre,centre],
-                  (preferred_stimulus['width'], preferred_stimulus['length']),
-                  preferred_stimulus['angle'],
-                  preferred_colour)
-
-    input_data = np.stack((stimulus_A, stimulus_B, stimulus_C, stimulus_D, stimulus_pref))
-
-    # print(input_data.shape)
-    # plt.imshow(stimulus_D)
-    # plt.show()
+def run_test(stim_A, stim_B, stim_C, stim_D, stim_pref, input, layer, unit_index):
+    input_data = np.stack((stim_A, stim_B, stim_C, stim_D, stim_pref))
 
     with tf.Session() as sess:
         init = tf.global_variables_initializer()
@@ -177,9 +164,6 @@ def standard_test(input, layer, unit_index, preferred_stimulus, im_width):
 
     return {'responses': responses, 'side': side, 'contrast': contrast, 'mean': m}
 
-    #TODO: the side does involve a contrast difference if the square doesn't fully cover the classical RF,
-    #   but as this net is feedforward, there can't be a border effect if it does
-
 
 def count_feature_maps(layer):
     with tf.Session() as sess:
@@ -193,6 +177,68 @@ def count_feature_maps(layer):
 
 def clean_layer_name(layer):
     return layer.replace(':', '_').replace('/', '_')
+
+
+def c_test_full_layer(layer, preferred_stimuli, im_width=400, base_path='.'):
+    m = count_feature_maps(layer)
+
+    border_responses = []
+    contrast_responses = []
+    means = []
+    responses = []
+    for unit_index in range(m):
+        print('{} of {} for {}'.format(unit_index, m, layer))
+        preferred_stimulus = parameters[preferred_stimuli[layer][unit_index]]
+
+        stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_c_shape_stimuli(im_width, preferred_stimulus)
+        stim_pref = get_preferred_stimulus(im_width, preferred_stimulus)
+
+        result = run_test(stimulus_A, stimulus_B, stimulus_C, stimulus_D, stim_pref,
+            input_tf, layer, unit_index)
+
+        border_responses.append(result['side'])
+        contrast_responses.append(result['contrast'])
+        means.append(result['mean'])
+        responses.append(result['responses'])
+        print(result['responses'])
+
+    filename = 'border-c-{}.pkl'.format(clean_layer_name(layer))
+    with open(os.path.join(base_path, filename), 'wb') as file:
+        pickle.dump({'border_responses': border_responses,
+                     'contrast_responses': contrast_responses,
+                     'means': means,
+                     'responses': responses}, file)
+
+
+def overlap_test_full_layer(layer, preferred_stimuli, im_width=400, base_path='.'):
+    m = count_feature_maps(layer)
+
+    border_responses = []
+    contrast_responses = []
+    means = []
+    responses = []
+    for unit_index in range(m):
+        print('{} of {} for {}'.format(unit_index, m, layer))
+        preferred_stimulus = parameters[preferred_stimuli[layer][unit_index]]
+
+        stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_overlapping_squares_stimuli(im_width, preferred_stimulus)
+        stim_pref = get_preferred_stimulus(im_width, preferred_stimulus)
+
+        result = run_test(stimulus_A, stimulus_B, stimulus_C, stimulus_D, stim_pref,
+            input_tf, layer, unit_index)
+
+        border_responses.append(result['side'])
+        contrast_responses.append(result['contrast'])
+        means.append(result['mean'])
+        responses.append(result['responses'])
+        print(result['responses'])
+
+    filename = 'border-overlap-{}.pkl'.format(clean_layer_name(layer))
+    with open(os.path.join(base_path, filename), 'wb') as file:
+        pickle.dump({'border_responses': border_responses,
+                     'contrast_responses': contrast_responses,
+                     'means': means,
+                     'responses': responses}, file)
 
 
 def standard_test_full_layer(layer, preferred_stimuli, im_width=400, base_path='.'):
@@ -353,6 +399,8 @@ if __name__ == '__main__':
     network = 'hed'
     FIND_OPTIMAL_BARS = False
     DO_STANDARD_TEST = True
+    DO_C_TEST = False
+    DO_OVERLAP_TEST = False
 
     if network == 'resnet':
         im_width = 224
@@ -378,8 +426,9 @@ if __name__ == '__main__':
         input_tf, _ = model_converted
 
         # Define layers to perform experiment on
-        layers = ['relu1_1', 'relu1_2', 'relu2_1', 'relu2_2', 'relu3_1', 'relu3_2',
-                  'relu3_3', 'relu4_1', 'relu4_2', 'relu4_3', 'relu5_1', 'relu5_2', 'relu5_3']
+        # layers = ['relu1_1', 'relu1_2', 'relu2_1', 'relu2_2', 'relu3_1', 'relu3_2',
+        #           'relu3_3', 'relu4_1', 'relu4_2', 'relu4_3', 'relu5_1', 'relu5_2', 'relu5_3']
+        layers = ['relu5_3']
         device_append = ':0'
         layers = [layer + device_append for layer in layers]
 
@@ -405,3 +454,13 @@ if __name__ == '__main__':
                                      base_path='./generated-files/'+network)
         # export_poisson('./generated-files/'+network, layers[-1])
         # plot_poisson('./generated-files/'+network, layers[0])
+
+    if DO_C_TEST:
+        for layer in layers:
+            c_test_full_layer(layer, preferred_stimuli, im_width=im_width,
+                                     base_path='./generated-files/'+network)
+
+    if DO_OVERLAP_TEST:
+        for layer in layers:
+            overlap_test_full_layer(layer, preferred_stimuli, im_width=im_width,
+                                     base_path='./generated-files/'+network)

@@ -76,6 +76,8 @@ def plot_border_vs_contrast(result_dir, layers, add_suffix=True):
     else:
         files = ['border-{}.pkl'.format(layer) for layer in layers]
 
+    # print(os.listdir(result_dir))
+
     for layer, file in zip(layers, files):
         with open(os.path.join(result_dir, file), 'rb') as f:
             data = pickle.load(f, encoding='latin1')
@@ -89,6 +91,90 @@ def plot_border_vs_contrast(result_dir, layers, add_suffix=True):
             border_responses = [br for br in border_responses if not np.isnan(br)]
             contrast_responses = [cr for cr in contrast_responses if not np.isnan(cr)]
             _plot_border_vs_contrast(border_responses, contrast_responses, result_dir, layer)
+
+
+def left_preferred(responses):
+    """
+    :param responses: A, B, C, D, preferred-bar responses
+    :return: true if left stimuli are preferred to right stimuli
+    """
+    A, B, C, D, pref = responses
+    return ((A + C) - (B + D)) > 0
+
+
+def plot_border_c_vs_standard(result_dir, layer):
+    # standard_file = 'border-{}:0.pkl'.format(layer)
+    standard_file = 'border-{}_0.pkl'.format(layer)
+    c_file = 'border-c-{}_0.pkl'.format(layer)
+
+    with open(os.path.join(result_dir, standard_file), 'rb') as f:
+        data = pickle.load(f, encoding='latin1')
+        standard_border_responses = data['border_responses']
+        standard_responses = data['responses']
+
+    with open(os.path.join(result_dir, c_file), 'rb') as f:
+        data = pickle.load(f, encoding='latin1')
+        c_border_responses = data['border_responses']
+        c_responses = data['responses']
+
+    same_count = 0
+    different_count = 0
+    for i in range(len(c_border_responses)):
+        if c_border_responses[i] > 50 and standard_border_responses[i] > 50:
+            left_preferred_standard = left_preferred(standard_responses[i])
+            left_preferred_c = left_preferred(c_responses[i])
+            if left_preferred_standard == left_preferred_c:
+                same_count += 1
+            else:
+                different_count += 1
+    print('same: {} different: {}'.format(same_count, different_count))
+
+    standard_clean = []
+    c_clean = []
+    for i in range(len(standard_border_responses)):
+        if not np.isnan(standard_border_responses[i]) and not np.isnan(c_border_responses[i]):
+            standard_clean.append(standard_border_responses[i])
+            c_clean.append(c_border_responses[i])
+
+
+    _plot_border_vs_contrast(standard_clean, c_clean, result_dir, 'standard_vs_c')
+
+
+def plot_border_overlap_vs_standard(result_dir, layer):
+    standard_file = 'border-{}:0.pkl'.format(layer)
+    # standard_file = 'border-{}_0.pkl'.format(layer)
+    overlap_file = 'border-overlap-{}_0.pkl'.format(layer)
+
+    with open(os.path.join(result_dir, standard_file), 'rb') as f:
+        data = pickle.load(f, encoding='latin1')
+        standard_border_responses = data['border_responses']
+        standard_responses = data['responses']
+
+    with open(os.path.join(result_dir, overlap_file), 'rb') as f:
+        data = pickle.load(f, encoding='latin1')
+        overlap_border_responses = data['border_responses']
+        overlap_responses = data['responses']
+
+    same_count = 0
+    different_count = 0
+    for i in range(len(standard_border_responses)):
+        if overlap_border_responses[i] > 50 and standard_border_responses[i] > 50:
+            left_preferred_standard = left_preferred(standard_responses[i])
+            left_preferred_overlap = left_preferred(overlap_responses[i])
+            if left_preferred_standard == left_preferred_overlap:
+                same_count += 1
+            else:
+                different_count += 1
+    print('same: {} different: {}'.format(same_count, different_count))
+
+    standard_clean = []
+    overlap_clean = []
+    for i in range(len(standard_border_responses)):
+        if not np.isnan(standard_border_responses[i]) and not np.isnan(overlap_border_responses[i]):
+            standard_clean.append(standard_border_responses[i])
+            overlap_clean.append(overlap_border_responses[i])
+
+    _plot_border_vs_contrast(standard_clean, overlap_clean, result_dir, 'standard_vs_overlap')
 
 
 def find_example_cells(result_dir, layer):
@@ -312,9 +398,9 @@ def get_stimuli(preferred_stimulus, im_width):
 
 def get_optimal_stimulus(index, border=True):
     if index in (121, 204, 254, 326, 476): # these had strongest border coding bias
-        filename = './visualize/border/visualize-convolution_12-{}-8.pkl'.format(index)
+        filename = './visualize/border/visualize-lap-convolution_12-{}-8.pkl'.format(index)
     else:
-        filename = './visualize/contrast/visualize-convolution_12-{}-8.pkl'.format(index)
+        filename = './visualize/contrast/visualize-lap-convolution_12-{}-8.pkl'.format(index)
 
     with open(filename, 'rb') as f:
         return pickle.load(f)
@@ -340,6 +426,8 @@ def inner_product_experiment(index):
 
 
 if __name__ == '__main__':
+
+
     """
     DOC relu5_3: 
     Good border cells: 
@@ -387,54 +475,56 @@ if __name__ == '__main__':
     # print('{} +/- {}'.format(np.mean(contrast_sides), np.std(contrast_sides)))
     # print('{} +/- {}'.format(np.mean(contrast_surrounds), np.std(contrast_surrounds)))
 
-    border_sides = []
-    border_contrasts = []
-    for index in border_units:
-        side, contrast = inner_product_experiment(index)
-        border_sides.append(side)
-        border_contrasts.append(contrast)
-    print('Border cells:')
-    print('Border {} +/- {}'.format(np.mean(border_sides), np.std(border_sides)))
-    print('Contrast {} +/- {}'.format(np.mean(border_contrasts), np.std(border_contrasts)))
-    print(border_sides)
-    print(border_contrasts)
 
-    contrast_sides = []
-    contrast_contrasts = []
-    for index in contrast_units:
-        side, contrast = inner_product_experiment(index)
-        contrast_sides.append(side)
-        contrast_contrasts.append(contrast)
-    print('Contrast cells:')
-    print('Border {} +/- {}'.format(np.mean(contrast_sides), np.std(contrast_sides)))
-    print('Contrast {} +/- {}'.format(np.mean(contrast_contrasts), np.std(contrast_contrasts)))
-    print(contrast_sides)
-    print(contrast_contrasts)
 
-    # plt.figure(figsize=(6,3))
-    # plt.subplot(1,2,1)
-    # index = border_units[0]
-    # optimal_stimulus = get_optimal_stimulus(index)
-    # preferred_stimulus = get_preferred_stimulus(index)
-    # corners1, corners2 = get_stimulus_bounds(preferred_stimulus, im_width=256)
-    # plt.imshow(optimal_stimulus)
-    # draw_square(corners1)
-    # draw_square(corners2)
-    # plt.xticks([]), plt.yticks([])
-    # plt.title('Strong Border Response')
-    # plt.subplot(1,2,2)
-    # index = contrast_units[0]
-    # optimal_stimulus = get_optimal_stimulus(index)
-    # preferred_stimulus = get_preferred_stimulus(index)
-    # corners1, corners2 = get_stimulus_bounds(preferred_stimulus, im_width=256)
-    # plt.imshow(optimal_stimulus)
-    # draw_square(corners1)
-    # draw_square(corners2)
-    # plt.xticks([]), plt.yticks([])
-    # plt.title('Strong Contrast Response')
-    # plt.tight_layout()
-    # plt.savefig('optimal-stim-examples.eps')
-    # plt.show()
+    # border_sides = []
+    # border_contrasts = []
+    # for index in border_units:
+    #     side, contrast = inner_product_experiment(index)
+    #     border_sides.append(side)
+    #     border_contrasts.append(contrast)
+    # print('Border cells:')
+    # print('Border {} +/- {}'.format(np.mean(border_sides), np.std(border_sides)))
+    # print('Contrast {} +/- {}'.format(np.mean(border_contrasts), np.std(border_contrasts)))
+    # print(border_sides)
+    # print(border_contrasts)
+    #
+    # contrast_sides = []
+    # contrast_contrasts = []
+    # for index in contrast_units:
+    #     side, contrast = inner_product_experiment(index)
+    #     contrast_sides.append(side)
+    #     contrast_contrasts.append(contrast)
+    # print('Contrast cells:')
+    # print('Border {} +/- {}'.format(np.mean(contrast_sides), np.std(contrast_sides)))
+    # print('Contrast {} +/- {}'.format(np.mean(contrast_contrasts), np.std(contrast_contrasts)))
+    # print(contrast_sides)
+    # print(contrast_contrasts)
+
+    plt.figure(figsize=(6,3))
+    plt.subplot(1,2,1)
+    index = border_units[0]
+    optimal_stimulus = get_optimal_stimulus(index)
+    preferred_stimulus = get_preferred_stimulus(index)
+    corners1, corners2 = get_stimulus_bounds(preferred_stimulus, im_width=256)
+    plt.imshow(optimal_stimulus)
+    draw_square(corners1)
+    draw_square(corners2)
+    plt.xticks([]), plt.yticks([])
+    plt.title('Strong Border Response')
+    plt.subplot(1,2,2)
+    index = contrast_units[0]
+    optimal_stimulus = get_optimal_stimulus(index)
+    preferred_stimulus = get_preferred_stimulus(index)
+    corners1, corners2 = get_stimulus_bounds(preferred_stimulus, im_width=256)
+    plt.imshow(optimal_stimulus)
+    draw_square(corners1)
+    draw_square(corners2)
+    plt.xticks([]), plt.yticks([])
+    plt.title('Strong Contrast Response')
+    plt.tight_layout()
+    plt.savefig('optimal-stim-examples.eps')
+    plt.show()
 
 
     # index = 81
@@ -455,13 +545,21 @@ if __name__ == '__main__':
     #TODO: calculate inner product of positive and negative object and surround regions
     # with optimal stimulus
 
+    # layer = 'relu5_3'
+    # result_dir = './generated-files/doc'
+    # # result_dir = './generated-files/hed'
+    # # plot_border_c_vs_standard(result_dir, layer)
+    # plot_border_overlap_vs_standard(result_dir, layer)
+    # # plt.show()
 
     # layers = ['relu1_1', 'relu2_2',
     #           'relu3_3', 'relu4_3', 'relu5_3']
-    # plot_border_vs_contrast('./doc', layers)
+    # # layers = ['relu2_2']
+    # plot_border_vs_contrast('./generated-files/doc', layers)
+    # plt.show()
 
     # layers = ['mask_fcn_probs']
-    # layers = ['_[mask]_fcn4']
+    # # layers = ['_[mask]_fcn4']
     # plot_border_vs_contrast('./generated-files/mask-rcnn', layers, add_suffix=False)
     # plt.show()
 

@@ -133,6 +133,11 @@ def get_preferred_stimulus(im_width, preferred_stimulus):
     """
     preferred_colour = preferred_stimulus['colour']
     centre = im_width/2
+
+    colours = Colours()
+    bg_colour_name = 'Light gray (background)'
+    bg_colour = colours.get_RGB(bg_colour_name, 0)
+
     stimulus_pref = get_image((im_width, im_width, 3), bg_colour)
     add_rectangle(stimulus_pref,
                   [centre,centre],
@@ -221,6 +226,7 @@ def get_c_shape_stimuli(im_width, preferred_stimulus):
     bg_colour_name = 'Light gray (background)'
     bg_colour = colours.get_RGB(bg_colour_name, 0)
 
+    print(preferred_stimulus)
     preferred_colour = preferred_stimulus['colour']
 
     c_shape = (im_width/4, im_width/2)
@@ -258,10 +264,10 @@ if __name__ == '__main__':
         'colour': colours.get_RGB('Red–brown', 0),
         'length': 80,
         'width': 8,
-        'angle': np.pi * .25}
+        'angle': -np.pi * 1.25}
     # stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_standard_test_stimuli(400, preferred_stimulus)
-    # stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_overlapping_squares_stimuli(400, preferred_stimulus)
-    stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_c_shape_stimuli(400, preferred_stimulus)
+    stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_overlapping_squares_stimuli(400, preferred_stimulus)
+    # stimulus_A, stimulus_B, stimulus_C, stimulus_D = get_c_shape_stimuli(400, preferred_stimulus)
 
     plt.figure()
     plt.subplot(2,2,1)
@@ -272,5 +278,12 @@ if __name__ == '__main__':
     plt.imshow(stimulus_B)
     plt.subplot(2,2,4)
     plt.imshow(stimulus_D)
+
+    for i in range(1,5):
+        plt.subplot(2, 2, i)
+        plt.xticks([])
+        plt.yticks([])
+
+    plt.tight_layout()
     plt.show()
 
