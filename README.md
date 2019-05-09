@@ -1,5 +1,18 @@
 # DOC-tf
-Implementation of Deep Occlusion Estimation in Tensorflow
+Implementation of Deep Occlusion Estimation in Tensorflow along with associated border ownership experiments
+
+The program is written in Python 3 using Tensorflow. For more details about the border ownership experiments, please see the following reference:
+
+    @inproceedings{Hu_etal19CISS,
+        Title                    = {Figure-ground representation in deep neural networks},
+        Author                   = {Hu, Brian and Khan, Salman and Niebur, Ernst and Tripp, Bryan},
+        Booktitle                = {IEEE CISS-2019 53rd Annual Conference on Information Sciences and Systems},
+        Year                     = {2019},
+        Address                  = {Baltimore, MD},
+        Organization             = {IEEE Information Theory Society},
+        Pages                    = {1-6},
+        Doi                      = {10.1109/CISS.2019.8693039}
+    }
 
 ## DOC: Deep OCclusion Estimation From a Single Image
 
